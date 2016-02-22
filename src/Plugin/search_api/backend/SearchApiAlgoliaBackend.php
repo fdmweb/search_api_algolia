@@ -7,20 +7,12 @@
 
 namespace Drupal\search_api_algolia\Plugin\search_api\backend;
 
-#use Drupal\Core\Config\Config;
-#use Drupal\Core\Extension\ModuleHandlerInterface;
-use AlgoliaSearch\Index;
 use Drupal\Core\Form\FormStateInterface;
-#use Drupal\Core\Language\LanguageManagerInterface;
-#use Drupal\Core\Url;
-#use Drupal\search_api\Item\FieldInterface;
-#use Drupal\search_api\Query\ConditionInterface;
-#use Drupal\search_api\SearchApiException;
+use Drupal\Core\Field;
+use Drupal\search_api\Item\ItemInterface;
 use Drupal\search_api\IndexInterface;
-#use Drupal\search_api\Query\ConditionGroupInterface;
 use Drupal\search_api\Query\QueryInterface;
 use Drupal\search_api\Backend\BackendPluginBase;
-#use Drupal\search_api\Query\ResultSetInterface;
 use Drupal\search_api\Utility;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -147,44 +139,46 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
    * {@inheritdoc}
    */
   public function indexItems(IndexInterface $index, array $items) {
-    // Connect to the Algolia service.
     $this->connect($index);
 
-    // Note the max size of a record for Algolia is 10KB.
-    $algolia_data = array();
-
-    /*
+    $content = array();
+    /** @var \Drupal\search_api\Item\ItemInterface[] $items */
     foreach ($items as $id => $item) {
-      $algolia_data[$id] = array('objectID' => $id);
-
-      foreach ($item as $name => $field) {
-
-        $this->addIndexField($doc, $field_names[$name], $field_names_single_value[$name], $field->getValues(), $field->getType());
-      }
-
-      if ($doc) {
-        $documents[] = $doc;
-        $ret[] = $id;
-      }
+      $content[$id] = $this->indexItem($index, $item);
     }
-*/
 
-    foreach ($items as $id => $item) {
-      $algolia_data[$id] = array('objectID' => $id);
-
-      foreach ($item as $key => $field) {
-        $algolia_data[$id][$key] = $field->getValues();
+    if (count($content) > 0) {
+      try {
+        $this->getAlgoliaIndex()->addObjects($content);
+      }
+      catch (AlgoliaException $e) {
+        $this->getLogger()->warning(Html::escape($e->getMessage()));
       }
     }
 
-    try {
-      $this->getAlgoliaIndex()->addObjects(array_values($algolia_data));
-      //$algolia_index->addObjects(array_values($algolia_data));
-    }
-    catch (AlgoliaException $e) {
-      //throw new SearchApiException($e->getMessage());
+    return array_keys($content);
+  }
+
+  /**
+   * Indexes a single item on the specified index.
+   *
+   * Used as a helper method in indexItems().
+   *
+   * @param \Drupal\search_api\IndexInterface $index
+   *   The index for which the item is being indexed.
+   * @param \Drupal\search_api\Item\ItemInterface $item
+   *   The item to index.
+   */
+  protected function indexItem(IndexInterface $index, ItemInterface $item) {
+    $item_id = $item->getId();
+    $item_to_index = array('objectID' => $item_id);
+
+    /** @var \Drupal\search_api\Item\FieldInterface $field */
+    foreach ($item as $key => $field) {
+      $item_to_index[$field->getFieldIdentifier()] = $field->getValues();
     }
 
+    return $item_to_index;
   }
 
   /**
