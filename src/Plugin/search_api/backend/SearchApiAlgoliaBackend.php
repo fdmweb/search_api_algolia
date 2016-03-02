@@ -8,6 +8,7 @@
 namespace Drupal\search_api_algolia\Plugin\search_api\backend;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field;
 use Drupal\search_api\Item\ItemInterface;
 use Drupal\search_api\IndexInterface;
@@ -35,10 +36,18 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   protected $algoliaClient;
 
   /**
+   * The module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, ModuleHandlerInterface $module_handler) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
+    $this->moduleHandler = $module_handler;
   }
 
   /**
@@ -48,7 +57,8 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
     return new static(
       $configuration,
       $plugin_id,
-      $plugin_definition
+      $plugin_definition,
+      $container->get('module_handler')
     );
   }
 
@@ -141,22 +151,26 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   public function indexItems(IndexInterface $index, array $items) {
     $this->connect($index);
 
-    $content = array();
+    $objects = array();
     /** @var \Drupal\search_api\Item\ItemInterface[] $items */
     foreach ($items as $id => $item) {
-      $content[$id] = $this->indexItem($index, $item);
+      $objects[$id] = $this->indexItem($index, $item);
     }
 
-    if (count($content) > 0) {
+    // Let other modules alter objects before sending them to Algolia.
+    \Drupal::moduleHandler()->alter('search_api_algolia_objects', $objects, $index, $items);
+    $this->alterAlgoliaObjects($objects, $index, $items);
+
+    if (count($objects) > 0) {
       try {
-        $this->getAlgoliaIndex()->addObjects($content);
+        $this->getAlgoliaIndex()->addObjects($objects);
       }
       catch (AlgoliaException $e) {
         $this->getLogger()->warning(Html::escape($e->getMessage()));
       }
     }
 
-    return array_keys($content);
+    return array_keys($objects);
   }
 
   /**
@@ -179,6 +193,24 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
     }
 
     return $item_to_index;
+  }
+
+  /**
+   * Applies custom modifications to indexed Algolia objects.
+   *
+   * This method allows subclasses to easily apply custom changes before the
+   * objects are sent to Algolia. The method is empty by default.
+   *
+   * @param $objects
+   *   An array of objects ready to be indexed, generated from $items array.
+   * @param \Drupal\search_api\IndexInterface $index
+   *   The search index for which items are being indexed.
+   * @param array $items
+   *   An array of items being indexed.
+   *
+   * @see hook_search_api_algolia_objects_alter()
+   */
+  protected function alterAlgoliaObjects(array &$objects, IndexInterface $index, array $items) {
   }
 
   /**
@@ -268,5 +300,4 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   protected function getApiKey() {
     return $this->configuration['api_key'];
   }
-
 }
