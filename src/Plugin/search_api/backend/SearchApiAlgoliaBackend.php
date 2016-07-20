@@ -244,7 +244,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
    */
   public function search(QueryInterface $query) {
     // This plugin does not support searching and we therefore just return an empty search result.
-    $results = Utility::createSearchResultSet($query);
+    $results = $query->getResults();
     $results->setResultItems(array());
     $results->setResultCount(0);
     return $results;
