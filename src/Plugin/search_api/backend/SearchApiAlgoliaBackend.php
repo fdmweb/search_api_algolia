@@ -229,7 +229,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function deleteAllIndexItems(IndexInterface $index = NULL) {
+  public function deleteAllIndexItems(IndexInterface $index = NULL, $datasource_id = NULL) {
     if ($index) {
       // Connect to the Algolia service.
       $this->connect($index);
