@@ -258,7 +258,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
       $this->algoliaClient = new \AlgoliaSearch\Client($this->getApplicationId(), $this->getApiKey());
 
       if ($index && $index instanceof IndexInterface) {
-        $this->setAlgoliaIndex($this->algoliaClient->initIndex($index->get('name')));
+        $this->setAlgoliaIndex($this->algoliaClient->initIndex($index->get('id')));
       }
     }
   }
