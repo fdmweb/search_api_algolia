@@ -249,7 +249,6 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
       if (count($values) <= 1) {
         $values = reset($values);
       }
-      ddl($values);
       $item_to_index[$field->getFieldIdentifier()] = $values;
     }
 
