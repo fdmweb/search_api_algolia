@@ -7,6 +7,7 @@
 
 namespace Drupal\search_api_algolia\Plugin\search_api\backend;
 
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field;
@@ -104,7 +105,12 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
    * {@inheritdoc}
    */
   public function viewSettings() {
-    $this->connect();
+    try {
+      $this->connect();
+    }
+    catch (\Exception $e) {
+      $this->getLogger()->warning('Could not connect to Algolia backend.');
+    }
     $info = array();
 
     // Application ID
@@ -154,7 +160,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
     $objects = array();
     /** @var \Drupal\search_api\Item\ItemInterface[] $items */
     foreach ($items as $id => $item) {
-      $objects[$id] = $this->indexItem($index, $item);
+      $objects[$id] = $this->prepareItem($index, $item);
     }
 
     // Let other modules alter objects before sending them to Algolia.
@@ -163,7 +169,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
 
     if (count($objects) > 0) {
       try {
-        $this->getAlgoliaIndex()->addObjects($objects);
+        $this->getAlgoliaIndex()->saveObjects($objects);
       }
       catch (AlgoliaException $e) {
         $this->getLogger()->warning(Html::escape($e->getMessage()));
@@ -176,20 +182,74 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   /**
    * Indexes a single item on the specified index.
    *
-   * Used as a helper method in indexItems().
-   *
    * @param \Drupal\search_api\IndexInterface $index
    *   The index for which the item is being indexed.
    * @param \Drupal\search_api\Item\ItemInterface $item
    *   The item to index.
    */
   protected function indexItem(IndexInterface $index, ItemInterface $item) {
+    $this->indexItems([$item->getId() => $item]);
+  }
+
+  /**
+   * Prepares a single item for indexing.
+   *
+   * Used as a helper method in indexItem()/indexItems().
+   *
+   * @param \Drupal\search_api\Item\ItemInterface $item
+   *   The item to index.
+   */
+  protected function prepareItem(IndexInterface $index, ItemInterface $item) {
     $item_id = $item->getId();
-    $item_to_index = array('objectID' => $item_id);
+    $item_to_index = ['objectID' => $item_id];
 
     /** @var \Drupal\search_api\Item\FieldInterface $field */
-    foreach ($item as $key => $field) {
-      $item_to_index[$field->getFieldIdentifier()] = $field->getValues();
+    $item_fields = $item->getFields();
+    $item_fields += $this->getSpecialFields($index, $item);
+    foreach ($item_fields as $field_id => $field) {
+      $type = $field->getType();
+      $values = NULL;
+      foreach ($field->getValues() as $field_value) {
+        if (!$field_value) {
+          continue;
+        }
+        switch ($type) {
+          case 'text':
+          case 'string':
+          case 'uri':
+            $field_value .= '';
+            if (Unicode::strlen($field_value) > 10000) {
+              $field_value = Unicode::substr(trim($field_value), 0, 10000);
+            }
+            $values[] = $field_value;
+            break;
+
+          case 'integer':
+          case 'duration':
+          case 'decimal':
+            $values[] = 0 + $field_value;
+            break;
+
+          case 'boolean':
+            $values[] = $field_value ? TRUE : FALSE;
+            break;
+
+          case 'date':
+            if (is_numeric($field_value) || !$field_value) {
+              $values[] = 0 + $field_value;
+              break;
+            }
+            $values[] = strtotime($field_value);
+            break;
+
+          default:
+            $values[] = $field_value;
+        }
+      }
+      if (count($values) <= 1) {
+        $values = reset($values);
+      }
+      $item_to_index[$field->getFieldIdentifier()] = $values;
     }
 
     return $item_to_index;
@@ -258,7 +318,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
       $this->algoliaClient = new \AlgoliaSearch\Client($this->getApplicationId(), $this->getApiKey());
 
       if ($index && $index instanceof IndexInterface) {
-        $this->setAlgoliaIndex($this->algoliaClient->initIndex($index->get('name')));
+        $this->setAlgoliaIndex($this->algoliaClient->initIndex($index->get('id')));
       }
     }
   }
