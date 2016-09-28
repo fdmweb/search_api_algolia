@@ -16,6 +16,7 @@ use Drupal\search_api\IndexInterface;
 use Drupal\search_api\Query\QueryInterface;
 use Drupal\search_api\Backend\BackendPluginBase;
 use Drupal\search_api\Utility;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -37,6 +38,13 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   protected $algoliaClient;
 
   /**
+   * The logger to use for logging messages.
+   *
+   * @var \Psr\Log\LoggerInterface|null
+   */
+  protected $logger;
+
+  /**
    * The module handler.
    *
    * @var \Drupal\Core\Extension\ModuleHandlerInterface
@@ -46,21 +54,25 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, ModuleHandlerInterface $module_handler) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->moduleHandler = $module_handler;
   }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $container->get('module_handler')
-    );
+    $backend = parent::create($container, $configuration, $plugin_id, $plugin_definition);
+
+    /** @var \Drupal\Core\Extension\ModuleHandlerInterface $module_handler */
+    $module_handler = $container->get('module_handler');
+    $backend->setModuleHandler($module_handler);
+
+    /** @var \Psr\Log\LoggerInterface $logger */
+    $logger = $container->get('logger.channel.search_api_algolia');
+    $backend->setLogger($logger);
+
+    return $backend;
   }
 
   /**
@@ -321,6 +333,52 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
         $this->setAlgoliaIndex($this->algoliaClient->initIndex($index->get('id')));
       }
     }
+  }
+
+  /**
+   * Retrieves the logger to use.
+   *
+   * @return \Psr\Log\LoggerInterface
+   *   The logger to use.
+   */
+  public function getLogger() {
+    return $this->logger ?: \Drupal::service('logger.channel.search_api_algolia');
+  }
+
+  /**
+   * Sets the logger to use.
+   *
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger to use.
+   *
+   * @return $this
+   */
+  public function setLogger(LoggerInterface $logger) {
+    $this->logger = $logger;
+    return $this;
+  }
+
+  /**
+   * Returns the module handler to use for this plugin.
+   *
+   * @return \Drupal\Core\Extension\ModuleHandlerInterface
+   *   The module handler.
+   */
+  public function getModuleHandler() {
+    return $this->moduleHandler ?: \Drupal::moduleHandler();
+  }
+
+  /**
+   * Sets the module handler to use for this plugin.
+   *
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler to use for this plugin.
+   *
+   * @return $this
+   */
+  public function setModuleHandler(ModuleHandlerInterface $module_handler) {
+    $this->moduleHandler = $module_handler;
+    return $this;
   }
 
   /**
