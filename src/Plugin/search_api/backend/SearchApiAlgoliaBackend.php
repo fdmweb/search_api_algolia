@@ -11,10 +11,12 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field;
+use Drupal\Core\Plugin\PluginFormInterface;
+use Drupal\search_api\Backend\BackendPluginBase;
 use Drupal\search_api\Item\ItemInterface;
 use Drupal\search_api\IndexInterface;
+use Drupal\search_api\Plugin\PluginFormTrait;
 use Drupal\search_api\Query\QueryInterface;
-use Drupal\search_api\Backend\BackendPluginBase;
 use Drupal\search_api\Utility;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -26,7 +28,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   description = @Translation("Index items using a Algolia Search.")
  * )
  */
-class SearchApiAlgoliaBackend extends BackendPluginBase {
+class SearchApiAlgoliaBackend extends BackendPluginBase  implements PluginFormInterface {
+
+  use PluginFormTrait;
 
   protected $algoliaIndex = NULL;
 
