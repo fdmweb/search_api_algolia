@@ -1,23 +1,17 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\search_api_algolia\Plugin\search_api\backend\SearchApiAlgoliaBackend.
- */
-
 namespace Drupal\search_api_algolia\Plugin\search_api\backend;
 
+use AlgoliaSearch\Client;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Field;
 use Drupal\Core\Plugin\PluginFormInterface;
 use Drupal\search_api\Backend\BackendPluginBase;
 use Drupal\search_api\Item\ItemInterface;
 use Drupal\search_api\IndexInterface;
 use Drupal\search_api\Plugin\PluginFormTrait;
 use Drupal\search_api\Query\QueryInterface;
-use Drupal\search_api\Utility;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -28,7 +22,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   description = @Translation("Index items using a Algolia Search.")
  * )
  */
-class SearchApiAlgoliaBackend extends BackendPluginBase  implements PluginFormInterface {
+class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInterface {
 
   use PluginFormTrait;
 
@@ -129,19 +123,19 @@ class SearchApiAlgoliaBackend extends BackendPluginBase  implements PluginFormIn
     }
     $info = array();
 
-    // Application ID
+    // Application ID.
     $info[] = array(
       'label' => $this->t('Application ID'),
       'info' => $this->getApplicationId(),
     );
 
-    // API Key
+    // API Key.
     $info[] = array(
       'label' => $this->t('API Key'),
       'info' => $this->getApiKey(),
     );
 
-    // Available indexes
+    // Available indexes.
     $indexes = $this->getAlgolia()->listIndexes();
     $indexes_list = array();
     if (isset($indexes['items'])) {
@@ -335,7 +329,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase  implements PluginFormIn
    */
   protected function connect($index = NULL) {
     if (!$this->getAlgolia()) {
-      $this->algoliaClient = new \AlgoliaSearch\Client($this->getApplicationId(), $this->getApiKey());
+      $this->algoliaClient = new Client($this->getApplicationId(), $this->getApiKey());
 
       if ($index && $index instanceof IndexInterface) {
         $this->setAlgoliaIndex($this->algoliaClient->initIndex($index->get('id')));
@@ -426,4 +420,5 @@ class SearchApiAlgoliaBackend extends BackendPluginBase  implements PluginFormIn
   protected function getApiKey() {
     return $this->configuration['api_key'];
   }
+
 }
