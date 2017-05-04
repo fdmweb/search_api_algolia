@@ -77,20 +77,20 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    return array(
+    return [
       'application_id' => '',
       'api_key' => '',
-    );
+    ];
   }
 
   /**
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-    $form['help'] = array(
-      '#markup' => '<p>' . $this->t('The application ID and API key an be found and configured at <a href="@link" target="blank">@link</a>.', array('@link' => 'https://www.algolia.com/licensing')) . '</p>',
-    );
-    $form['application_id'] = array(
+    $form['help'] = [
+      '#markup' => '<p>' . $this->t('The application ID and API key an be found and configured at <a href="@link" target="blank">@link</a>.', ['@link' => 'https://www.algolia.com/licensing']) . '</p>',
+    ];
+    $form['application_id'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Application ID'),
       '#description' => $this->t('The application ID from your Algolia subscription.'),
@@ -98,8 +98,8 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
       '#required' => TRUE,
       '#size' => 60,
       '#maxlength' => 128,
-    );
-    $form['api_key'] = array(
+    ];
+    $form['api_key'] = [
       '#type' => 'textfield',
       '#title' => $this->t('API Key'),
       '#description' => $this->t('The API key from your Algolia subscription.'),
@@ -107,7 +107,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
       '#required' => TRUE,
       '#size' => 60,
       '#maxlength' => 128,
-    );
+    ];
     return $form;
   }
 
@@ -121,32 +121,32 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
     catch (\Exception $e) {
       $this->getLogger()->warning('Could not connect to Algolia backend.');
     }
-    $info = array();
+    $info = [];
 
     // Application ID.
-    $info[] = array(
+    $info[] = [
       'label' => $this->t('Application ID'),
       'info' => $this->getApplicationId(),
-    );
+    ];
 
     // API Key.
-    $info[] = array(
+    $info[] = [
       'label' => $this->t('API Key'),
       'info' => $this->getApiKey(),
-    );
+    ];
 
     // Available indexes.
     $indexes = $this->getAlgolia()->listIndexes();
-    $indexes_list = array();
+    $indexes_list = [];
     if (isset($indexes['items'])) {
       foreach ($indexes['items'] as $index) {
         $indexes_list[] = $index['name'];
       }
     }
-    $info[] = array(
+    $info[] = [
       'label' => $this->t('Available Algolia indexes'),
       'info' => implode(', ', $indexes_list),
-    );
+    ];
 
     return $info;
   }
@@ -167,7 +167,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
   public function indexItems(IndexInterface $index, array $items) {
     $this->connect($index);
 
-    $objects = array();
+    $objects = [];
     /** @var \Drupal\search_api\Item\ItemInterface[] $items */
     foreach ($items as $id => $item) {
       $objects[$id] = $this->prepareItem($index, $item);
@@ -319,7 +319,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
   public function search(QueryInterface $query) {
     // This plugin does not support searching and we therefore just return an empty search result.
     $results = $query->getResults();
-    $results->setResultItems(array());
+    $results->setResultItems([]);
     $results->setResultCount(0);
     return $results;
   }
