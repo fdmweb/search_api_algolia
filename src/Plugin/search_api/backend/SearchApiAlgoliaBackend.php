@@ -225,7 +225,11 @@ class SearchApiAlgoliaBackend extends BackendPluginBase  implements PluginFormIn
     foreach ($item_fields as $field_id => $field) {
       $type = $field->getType();
       $values = NULL;
-      foreach ($field->getValues() as $field_value) {
+      $field_values = $field->getValues();
+      if (empty($field_values)) {
+        continue;
+      }
+      foreach ($field_values as $field_value) {
         if (!$field_value) {
           continue;
         }
@@ -262,7 +266,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase  implements PluginFormIn
             $values[] = $field_value;
         }
       }
-      if (count($values) <= 1) {
+      if (is_array($values) && count($values) <= 1) {
         $values = reset($values);
       }
       $item_to_index[$field->getFieldIdentifier()] = $values;
