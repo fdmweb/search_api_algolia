@@ -1,0 +1,4 @@
+services:
+  logger.channel.search_api_algolia:
+    parent: logger.channel_base
+    arguments: ['search_api_algolia']

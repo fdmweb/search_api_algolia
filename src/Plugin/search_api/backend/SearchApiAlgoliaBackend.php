@@ -1,21 +1,18 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\search_api_algolia\Plugin\search_api\backend\SearchApiAlgoliaBackend.
- */
-
 namespace Drupal\search_api_algolia\Plugin\search_api\backend;
 
+use AlgoliaSearch\Client;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Field;
+use Drupal\Core\Plugin\PluginFormInterface;
+use Drupal\search_api\Backend\BackendPluginBase;
 use Drupal\search_api\Item\ItemInterface;
 use Drupal\search_api\IndexInterface;
+use Drupal\search_api\Plugin\PluginFormTrait;
 use Drupal\search_api\Query\QueryInterface;
-use Drupal\search_api\Backend\BackendPluginBase;
-use Drupal\search_api\Utility;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -25,7 +22,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   description = @Translation("Index items using a Algolia Search.")
  * )
  */
-class SearchApiAlgoliaBackend extends BackendPluginBase {
+class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInterface {
+
+  use PluginFormTrait;
 
   protected $algoliaIndex = NULL;
 
@@ -37,6 +36,13 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   protected $algoliaClient;
 
   /**
+   * The logger to use for logging messages.
+   *
+   * @var \Psr\Log\LoggerInterface|null
+   */
+  protected $logger;
+
+  /**
    * The module handler.
    *
    * @var \Drupal\Core\Extension\ModuleHandlerInterface
@@ -46,41 +52,45 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, ModuleHandlerInterface $module_handler) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->moduleHandler = $module_handler;
   }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $container->get('module_handler')
-    );
+    $backend = parent::create($container, $configuration, $plugin_id, $plugin_definition);
+
+    /** @var \Drupal\Core\Extension\ModuleHandlerInterface $module_handler */
+    $module_handler = $container->get('module_handler');
+    $backend->setModuleHandler($module_handler);
+
+    /** @var \Psr\Log\LoggerInterface $logger */
+    $logger = $container->get('logger.channel.search_api_algolia');
+    $backend->setLogger($logger);
+
+    return $backend;
   }
 
   /**
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    return array(
+    return [
       'application_id' => '',
       'api_key' => '',
-    );
+    ];
   }
 
   /**
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-    $form['help'] = array(
-      '#markup' => '<p>' . $this->t('The application ID and API key an be found and configured at <a href="@link" target="blank">@link</a>.', array('@link' => 'https://www.algolia.com/licensing')) . '</p>',
-    );
-    $form['application_id'] = array(
+    $form['help'] = [
+      '#markup' => '<p>' . $this->t('The application ID and API key an be found and configured at <a href="@link" target="blank">@link</a>.', ['@link' => 'https://www.algolia.com/licensing']) . '</p>',
+    ];
+    $form['application_id'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Application ID'),
       '#description' => $this->t('The application ID from your Algolia subscription.'),
@@ -88,8 +98,8 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
       '#required' => TRUE,
       '#size' => 60,
       '#maxlength' => 128,
-    );
-    $form['api_key'] = array(
+    ];
+    $form['api_key'] = [
       '#type' => 'textfield',
       '#title' => $this->t('API Key'),
       '#description' => $this->t('The API key from your Algolia subscription.'),
@@ -97,7 +107,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
       '#required' => TRUE,
       '#size' => 60,
       '#maxlength' => 128,
-    );
+    ];
     return $form;
   }
 
@@ -111,32 +121,32 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
     catch (\Exception $e) {
       $this->getLogger()->warning('Could not connect to Algolia backend.');
     }
-    $info = array();
+    $info = [];
 
-    // Application ID
-    $info[] = array(
+    // Application ID.
+    $info[] = [
       'label' => $this->t('Application ID'),
       'info' => $this->getApplicationId(),
-    );
+    ];
 
-    // API Key
-    $info[] = array(
+    // API Key.
+    $info[] = [
       'label' => $this->t('API Key'),
       'info' => $this->getApiKey(),
-    );
+    ];
 
-    // Available indexes
+    // Available indexes.
     $indexes = $this->getAlgolia()->listIndexes();
-    $indexes_list = array();
+    $indexes_list = [];
     if (isset($indexes['items'])) {
       foreach ($indexes['items'] as $index) {
         $indexes_list[] = $index['name'];
       }
     }
-    $info[] = array(
+    $info[] = [
       'label' => $this->t('Available Algolia indexes'),
       'info' => implode(', ', $indexes_list),
-    );
+    ];
 
     return $info;
   }
@@ -157,7 +167,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   public function indexItems(IndexInterface $index, array $items) {
     $this->connect($index);
 
-    $objects = array();
+    $objects = [];
     /** @var \Drupal\search_api\Item\ItemInterface[] $items */
     foreach ($items as $id => $item) {
       $objects[$id] = $this->prepareItem($index, $item);
@@ -209,7 +219,11 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
     foreach ($item_fields as $field_id => $field) {
       $type = $field->getType();
       $values = NULL;
-      foreach ($field->getValues() as $field_value) {
+      $field_values = $field->getValues();
+      if (empty($field_values)) {
+        continue;
+      }
+      foreach ($field_values as $field_value) {
         if (!$field_value) {
           continue;
         }
@@ -246,7 +260,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
             $values[] = $field_value;
         }
       }
-      if (count($values) <= 1) {
+      if (is_array($values) && count($values) <= 1) {
         $values = reset($values);
       }
       $item_to_index[$field->getFieldIdentifier()] = $values;
@@ -305,7 +319,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   public function search(QueryInterface $query) {
     // This plugin does not support searching and we therefore just return an empty search result.
     $results = $query->getResults();
-    $results->setResultItems(array());
+    $results->setResultItems([]);
     $results->setResultCount(0);
     return $results;
   }
@@ -315,12 +329,58 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
    */
   protected function connect($index = NULL) {
     if (!$this->getAlgolia()) {
-      $this->algoliaClient = new \AlgoliaSearch\Client($this->getApplicationId(), $this->getApiKey());
+      $this->algoliaClient = new Client($this->getApplicationId(), $this->getApiKey());
 
       if ($index && $index instanceof IndexInterface) {
         $this->setAlgoliaIndex($this->algoliaClient->initIndex($index->get('id')));
       }
     }
+  }
+
+  /**
+   * Retrieves the logger to use.
+   *
+   * @return \Psr\Log\LoggerInterface
+   *   The logger to use.
+   */
+  public function getLogger() {
+    return $this->logger ?: \Drupal::service('logger.channel.search_api_algolia');
+  }
+
+  /**
+   * Sets the logger to use.
+   *
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger to use.
+   *
+   * @return $this
+   */
+  public function setLogger(LoggerInterface $logger) {
+    $this->logger = $logger;
+    return $this;
+  }
+
+  /**
+   * Returns the module handler to use for this plugin.
+   *
+   * @return \Drupal\Core\Extension\ModuleHandlerInterface
+   *   The module handler.
+   */
+  public function getModuleHandler() {
+    return $this->moduleHandler ?: \Drupal::moduleHandler();
+  }
+
+  /**
+   * Sets the module handler to use for this plugin.
+   *
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler to use for this plugin.
+   *
+   * @return $this
+   */
+  public function setModuleHandler(ModuleHandlerInterface $module_handler) {
+    $this->moduleHandler = $module_handler;
+    return $this;
   }
 
   /**
@@ -360,4 +420,5 @@ class SearchApiAlgoliaBackend extends BackendPluginBase {
   protected function getApiKey() {
     return $this->configuration['api_key'];
   }
+
 }

@@ -5,4 +5,4 @@
  * Provides an Algolia Search based service class for the Search API.
  */
 
-use Drupal\search_api_algolia\Plugin\search_api\backend;
+/* use Drupal\search_api_algolia\Plugin\search_api\backend; */

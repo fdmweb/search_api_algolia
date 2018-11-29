@@ -1,5 +1,9 @@
 <?php
 
+ /**
+  * @file
+  */
+
 /**
  * Implements hook_requirements().
  */
