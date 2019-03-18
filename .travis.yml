@@ -39,6 +39,8 @@ env:
 
     # The environment to use, supported are: drupal-7, drupal-8
     - DRUPAL_TI_ENVIRONMENT="drupal-8"
+    # Switch to 8.6.x versions instead of 8.1.x by default.
+    - DRUPAL_TI_CORE_BRANCH="8.6.x"
 
     # The drush version to use, by default: drush/drush:8.0.*
     # - DRUPAL_TI_DRUSH_VERSION="drush/drush:~9.0"
