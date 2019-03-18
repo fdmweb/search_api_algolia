@@ -2,7 +2,8 @@
 
 namespace Drupal\search_api_algolia\Plugin\search_api\backend;
 
-use AlgoliaSearch\Client;
+use Algolia\AlgoliaSearch\SearchClient;
+use Algolia\AlgoliaSearch\Exceptions\AlgoliaException;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -12,6 +13,7 @@ use Drupal\search_api\Item\ItemInterface;
 use Drupal\search_api\IndexInterface;
 use Drupal\search_api\Plugin\PluginFormTrait;
 use Drupal\search_api\Query\QueryInterface;
+use Drupal\Component\Utility\Html;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -26,12 +28,10 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
 
   use PluginFormTrait;
 
-  protected $algoliaIndex = NULL;
-
   /**
    * A connection to the Algolia server.
    *
-   * @var \AlgoliaSearch\Client
+   * @var \Algolia\AlgoliaSearch\SearchClient::create
    */
   protected $algoliaClient;
 
@@ -53,6 +53,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
    * {@inheritdoc}
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition) {
+
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
@@ -60,17 +61,18 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    $backend = parent::create($container, $configuration, $plugin_id, $plugin_definition);
+    /** @var static $plugin */
+    $plugin = parent::create($container, $configuration, $plugin_id, $plugin_definition);
 
     /** @var \Drupal\Core\Extension\ModuleHandlerInterface $module_handler */
     $module_handler = $container->get('module_handler');
-    $backend->setModuleHandler($module_handler);
+    $plugin->setModuleHandler($module_handler);
 
     /** @var \Psr\Log\LoggerInterface $logger */
     $logger = $container->get('logger.channel.search_api_algolia');
-    $backend->setLogger($logger);
+    $plugin->setLogger($logger);
 
-    return $backend;
+    return $plugin;
   }
 
   /**
@@ -117,8 +119,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
   public function viewSettings() {
     try {
       $this->connect();
-    }
-    catch (\Exception $e) {
+    } catch (\Exception $e) {
       $this->getLogger()->warning('Could not connect to Algolia backend.');
     }
     $info = [];
@@ -136,7 +137,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
     ];
 
     // Available indexes.
-    $indexes = $this->getAlgolia()->listIndexes();
+    $indexes = $this->getAlgolia()->listIndices();
     $indexes_list = [];
     if (isset($indexes['items'])) {
       foreach ($indexes['items'] as $index) {
@@ -165,7 +166,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
    * {@inheritdoc}
    */
   public function indexItems(IndexInterface $index, array $items) {
-    $this->connect($index);
+    $this->connect();
 
     $objects = [];
     /** @var \Drupal\search_api\Item\ItemInterface[] $items */
@@ -174,14 +175,14 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
     }
 
     // Let other modules alter objects before sending them to Algolia.
-    \Drupal::moduleHandler()->alter('search_api_algolia_objects', $objects, $index, $items);
+    \Drupal::moduleHandler()
+      ->alter('search_api_algolia_objects', $objects, $index, $items);
     $this->alterAlgoliaObjects($objects, $index, $items);
 
     if (count($objects) > 0) {
       try {
-        $this->getAlgoliaIndex()->saveObjects($objects);
-      }
-      catch (AlgoliaException $e) {
+        $this->getAlgolia()->initIndex($index->id())->saveObjects($objects);
+      } catch (AlgoliaException $e) {
         $this->getLogger()->warning(Html::escape($e->getMessage()));
       }
     }
@@ -198,7 +199,7 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
    *   The item to index.
    */
   protected function indexItem(IndexInterface $index, ItemInterface $item) {
-    $this->indexItems([$item->getId() => $item]);
+    $this->indexItems($index, [$item->getId() => $item]);
   }
 
   /**
@@ -206,8 +207,11 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
    *
    * Used as a helper method in indexItem()/indexItems().
    *
+   * @param \Drupal\search_api\IndexInterface $index
    * @param \Drupal\search_api\Item\ItemInterface $item
    *   The item to index.
+   *
+   * @return array
    */
   protected function prepareItem(IndexInterface $index, ItemInterface $item) {
     $item_id = $item->getId();
@@ -292,11 +296,11 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
    */
   public function deleteItems(IndexInterface $index, array $ids) {
     // Connect to the Algolia service.
-    $this->connect($index);
+    $this->connect();
 
     // Deleting all items included in the $ids array.
     foreach ($ids as $id) {
-      $this->getAlgoliaIndex()->deleteObject($id);
+      $this->getAlgolia()->initIndex($index->id())->deleteObject($id);
     }
   }
 
@@ -306,10 +310,10 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
   public function deleteAllIndexItems(IndexInterface $index = NULL, $datasource_id = NULL) {
     if ($index) {
       // Connect to the Algolia service.
-      $this->connect($index);
+      $this->connect();
 
-      // Clcearing the full index.
-      $this->getAlgoliaIndex()->clearIndex();
+      // Clearing the full index.
+      $this->getAlgolia()->initIndex($index->id())->clearObjects();
     }
   }
 
@@ -325,15 +329,12 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
   }
 
   /**
-   * Creates a connection to the Algolia Search server as configured in $this->configuration.
+   * Creates a connection to the Algolia Search server as configured in
+   * $this->configuration.
    */
-  protected function connect($index = NULL) {
+  protected function connect() {
     if (!$this->getAlgolia()) {
-      $this->algoliaClient = new Client($this->getApplicationId(), $this->getApiKey());
-
-      if ($index && $index instanceof IndexInterface) {
-        $this->setAlgoliaIndex($this->algoliaClient->initIndex($index->get('id')));
-      }
+      $this->algoliaClient = SearchClient::create($this->getApplicationId(), $this->getApiKey());
     }
   }
 
@@ -386,25 +387,11 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
   /**
    * Returns the AlgoliaSearch client.
    *
-   * @return \AlgoliaSearch\Client
+   * @return \Algolia\AlgoliaSearch\SearchClient::create
    *   The algolia instance object.
    */
   public function getAlgolia() {
     return $this->algoliaClient;
-  }
-
-  /**
-   * Get the Algolia index.
-   */
-  protected function getAlgoliaIndex() {
-    return $this->algoliaIndex;
-  }
-
-  /**
-   * Set the Algolia index.
-   */
-  protected function setAlgoliaIndex($index) {
-    $this->algoliaIndex = $index;
   }
 
   /**
