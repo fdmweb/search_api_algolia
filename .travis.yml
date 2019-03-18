@@ -11,7 +11,6 @@ language: php
 sudo: false
 
 php:
-  - 5.5.9
   - 5.6
   - 7
   - hhvm
@@ -26,6 +25,8 @@ env:
     # add composer's global bin directory to the path
     # see: https://github.com/drush-ops/drush#install---composer
     - PATH="$PATH:$HOME/.composer/vendor/bin"
+    # force composer 1.8+ to use a specific folder as home
+    - COMPOSER_HOME="$HOME/.composer/"
 
     # Configuration variables.
     - DRUPAL_TI_MODULE_NAME="search_api_algolia"
@@ -38,6 +39,9 @@ env:
 
     # The environment to use, supported are: drupal-7, drupal-8
     - DRUPAL_TI_ENVIRONMENT="drupal-8"
+
+    # The drush version to use, by default: drush/drush:8.0.*
+    # - DRUPAL_TI_DRUSH_VERSION="drush/drush:~9.0"
 
     # The installation profile to use:
     #- DRUPAL_TI_INSTALL_PROFILE="testing"
@@ -101,8 +105,8 @@ mysql:
 
 before_install:
   - composer self-update
-  # Add the oauth token to prevent GitHub timeouts.
-  - git config --global github.accesstoken $GITHUB_OAUTH_TOKEN
+  # Comment this line for different directories, e.g. composer in the root.
+  # - cd ./tests
   - composer global require "lionsad/drupal_ti:1.*"
   - drupal-ti before_install
 
