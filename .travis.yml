@@ -17,7 +17,11 @@ php:
 matrix:
   fast_finish: true
   allow_failures:
+    - php: 7
     - php: hhvm
+branches:
+  only:
+    - "8.6.x"
 
 env:
   global:
@@ -38,8 +42,6 @@ env:
 
     # The environment to use, supported are: drupal-7, drupal-8
     - DRUPAL_TI_ENVIRONMENT="drupal-8"
-    # Switch to 8.6.x versions instead of 8.1.x by default.
-    - DRUPAL_TI_CORE_BRANCH="8.6.x"
 
     # The drush version to use, by default: drush/drush:8.0.*
     # - DRUPAL_TI_DRUSH_VERSION="drush/drush:~9.0"
@@ -109,6 +111,8 @@ before_install:
   # Comment this line for different directories, e.g. composer in the root.
   # - cd ./tests
   - composer global require "lionsad/drupal_ti:1.*"
+  # Algolia Search
+  - composer global require "algolia/algoliasearch-client-php:^2.0"
   - drupal-ti before_install
 
 install:
