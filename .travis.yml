@@ -108,8 +108,6 @@ before_install:
   # Comment this line for different directories, e.g. composer in the root.
   # - cd ./tests
   - composer global require "lionsad/drupal_ti:1.*"
-  # Algolia Search
-  - composer global require "algolia/algoliasearch-client-php:^2.0"
   - drupal-ti before_install
 
 install:
@@ -118,6 +116,7 @@ install:
   - composer clearcache
 
 before_script:
+  - drupal-ti --include ".travis-before-script.sh"
   - drupal-ti before_script
 
 script:
