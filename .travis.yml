@@ -105,13 +105,11 @@ before_install:
   - composer self-update
   # Comment this line for different directories, e.g. composer in the root.
   # - cd ./tests
-  - composer global require "lionsad/drupal_ti:1.*"
+  - composer global require "lionsad/drupal_ti:master"
   - drupal-ti before_install
 
 install:
   - drupal-ti install
-  - composer --verbose install
-  - composer clearcache
 
 before_script:
   - drupal-ti --include ".travis-before-script.sh"
