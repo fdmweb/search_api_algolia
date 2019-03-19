@@ -110,6 +110,8 @@ before_install:
 
 install:
   - drupal-ti install
+  - composer --verbose install
+  - composer clearcache
 
 before_script:
   - drupal-ti --include ".travis-before-script.sh"
@@ -123,4 +125,3 @@ after_script:
 
 notifications:
   email: false
-
