@@ -11,5 +11,5 @@ drupal_ti_ensure_drupal
 cd "$DRUPAL_TI_DRUPAL_DIR"
 composer clearcache
 # Algolia Search
-composer global require "algolia/algoliasearch-client-php:^2.0"
+composer require "algolia/algoliasearch-client-php:^2.0"
 composer update -n --lock --verbose
