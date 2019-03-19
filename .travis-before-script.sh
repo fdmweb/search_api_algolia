@@ -8,8 +8,8 @@ set -e $DRUPAL_TI_DEBUG
 drupal_ti_ensure_drupal
 
 # Change to the Drupal directory
-cd "$DRUPAL_TI_DRUPAL_DIR"
+cd $DRUPAL_TI_DRUPAL_DIR
 composer clearcache
 # Algolia Search
 composer require "algolia/algoliasearch-client-php:^2.0"
-composer update -n --lock --verbose
+
