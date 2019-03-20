@@ -113,6 +113,8 @@ before_script:
   - drupal-ti before_script
 
 script:
+ # Get the Drupal install directory.
+  - export DRUPAL_BUILD_DIR="$TRAVIS_BUILD_DIR/../$DRUPAL_TI_ENVIRONMENT/drupal"
   - drupal-ti script
 
 after_script:
