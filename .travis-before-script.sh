@@ -17,3 +17,15 @@ cat composer.json | grep 'algolia'
 ls -la
 cd "vendor"
 ls -la
+
+cd "$DRUPAL_TI_DRUPAL_DIR/$DRUPAL_TI_MODULES_PATH"
+
+# Manually clone the dependencies
+git clone --depth 1 --branch 8.x-1.x http://git.drupal.org/project/composer_manager.git
+
+# Initialize composer manage
+php "$DRUPAL_TI_DRUPAL_DIR/$DRUPAL_TI_MODULES_PATH/composer_manager/scripts/init.php"
+
+pwd
+ls -la
+
