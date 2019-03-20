@@ -103,21 +103,20 @@ mysql:
 
 before_install:
   - composer self-update
-  # Comment this line for different directories, e.g. composer in the root.
-  # - cd ./tests
   - composer global require "lionsad/drupal_ti:1.*"
+  # Install dependencies with composer
+  - composer install --no-dev --optimize-autoloader --prefer-dist --no-progress --no-interaction
   - drupal-ti before_install
 
 install:
   - drupal-ti install
-  - composer --verbose install
-  - composer clearcache
 
 before_script:
   - drupal-ti --include ".travis-before-script.sh"
   - drupal-ti before_script
 
 script:
+  - composer require algolia/algoliasearch-client-php:^2.0
   - drupal-ti script
 
 after_script:
