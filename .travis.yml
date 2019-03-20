@@ -113,10 +113,10 @@ install:
 
 before_script:
   - drupal-ti --include ".travis-before-script.sh"
+  - composer require algolia/algoliasearch-client-php:^2.0
   - drupal-ti before_script
 
 script:
-  - composer require algolia/algoliasearch-client-php:^2.0
   - drupal-ti script
 
 after_script:
