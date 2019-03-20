@@ -18,5 +18,4 @@ git clone --depth 1 --branch 8.x-1.x http://git.drupal.org/project/composer_mana
 cd "$DRUPAL_TI_DRUPAL_DIR"
 # Initialize composer manager.
 php "modules/composer_manager/scripts/init.php"
-composer drupal-rebuild
 composer update -n --lock --verbose
