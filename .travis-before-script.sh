@@ -9,6 +9,10 @@ drupal_ti_ensure_drupal
 
 # Change to the Drupal directory
 cd "$DRUPAL_TI_DRUPAL_DIR"
+echo "Test DIR $DRUPAL_TI_DRUPAL_DIR"
+pwd
 # Algolia Search
-echo "$DRUPAL_TI_DRUPAL_DIR"
 composer require "algolia/algoliasearch-client-php:^2.0"
+# Update composer
+composer drupal-rebuild
+composer install --prefer-source
