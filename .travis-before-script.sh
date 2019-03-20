@@ -11,9 +11,9 @@ drupal_ti_ensure_drupal
 cd "$DRUPAL_TI_DRUPAL_DIR"
 echo "Show current DIR"
 pwd
-ls -la
 # Algolia Search
 composer require "algolia/algoliasearch-client-php:^2.0"
+cat composer.json | grep 'algolia'
 ls -la
-# Update composer
-composer install --prefer-source
+cd "vendor"
+ls -la
