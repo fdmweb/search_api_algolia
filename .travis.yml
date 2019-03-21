@@ -65,7 +65,6 @@ install:
 
   # remove the recursive drupal folder from the symlinks
   - rm -f drupal/modules/$MODULE_NAME/drupal
-
   - cd drupal
 
 before_script:
@@ -81,7 +80,8 @@ before_script:
   - cd $TRAVIS_BUILD_DIR/drupal && drush --yes site-install standard --db-url="mysql://root@127.0.0.1/drupal"
 
   # Dependency Modules
-  - cd $TRAVIS_BUILD_DIR/drupal && composer require "algolia/algoliasearch-client-php:^2.0"
+  - cd $TRAVIS_BUILD_DIR/drupal && ls -ls
+  - cd $TRAVIS_BUILD_DIR/drupal composer clearcache && composer require algolia/algoliasearch-client-php:2.0
   - cd $TRAVIS_BUILD_DIR/drupal && drush --yes en $MODULE_NAME
   - cd $TRAVIS_BUILD_DIR/drupal && drush --yes en simpletest
 
