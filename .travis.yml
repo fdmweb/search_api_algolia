@@ -13,8 +13,8 @@ env:
     - MODULE_NAME='search_api_algolia'
     - DRUPAL_REPO='git://drupalcode.org/project/drupal.git'
     - DRUPAL_VERSION='8.6.x'
-    - PHPCS_VERSION='2.7.*'
-    - CODER_VERSION='8.2.9'
+  #  - PHPCS_VERSION='2.7.*'
+  #  - CODER_VERSION='8.2.9'
 
 notifications:
  # slack: 'xxx'
@@ -45,11 +45,11 @@ before_install:
   - composer global require drush/drush:~8.1
 
   # Codesniffer.
-  - composer global require squizlabs/php_codesniffer:$PHPCS_VERSION
+  #- composer global require squizlabs/php_codesniffer:$PHPCS_VERSION
 
   # Coder.
-  - composer global require drupal/coder:$CODER_VERSION
-  - ln -s ~/.composer/vendor/drupal/coder/coder_sniffer/Drupal ~/.composer/vendor/squizlabs/php_codesniffer/CodeSniffer/Standards/
+ # - composer global require drupal/coder:$CODER_VERSION
+ # - ln -s ~/.composer/vendor/drupal/coder/coder_sniffer/Drupal ~/.composer/vendor/squizlabs/php_codesniffer/CodeSniffer/Standards/
 
   # Ensure the PHP environment is ready.
   - phpenv rehash
