@@ -1,126 +1,88 @@
 # @file
-# .travis.yml - Drupal for Travis CI Integration
-#
-# Template provided by https://github.com/LionsAd/drupal_ti.
-#
-# Based for simpletest upon:
-#   https://github.com/sonnym/travis-ci-drupal-module-example
+# .travis.yml - Drupal 8 Travis CI Integration
 
 language: php
 
 sudo: false
 
 php:
-  - 5.6
-  - 7
-  - hhvm
-
-matrix:
-  fast_finish: true
-  allow_failures:
-    - php: hhvm
+  - 7.2
 
 env:
   global:
-    # add composer's global bin directory to the path
-    # see: https://github.com/drush-ops/drush#install---composer
-    - PATH="$PATH:$HOME/.composer/vendor/bin"
-    # force composer 1.8+ to use a specific folder as home
-    - COMPOSER_HOME="$HOME/.composer/"
+    - MODULE_NAME='search_api_algolia'
+    - DRUPAL_REPO='http://git.drupal.org/project/drupal.git'
+    - DRUPAL_VERSION='8.6.x'
 
-    # Configuration variables.
-    - DRUPAL_TI_MODULE_NAME="search_api_algolia"
-    - DRUPAL_TI_SIMPLETEST_GROUP="Search API Algolia"
+notifications:
+ # slack: 'xxx'
 
-    # Define runners and environment vars to include before and after the
-    # main runners / environment vars.
-    #- DRUPAL_TI_SCRIPT_DIR_BEFORE="./drupal_ti/before"
-    #- DRUPAL_TI_SCRIPT_DIR_AFTER="./drupal_ti/after"
-
-    # The environment to use, supported are: drupal-7, drupal-8
-    - DRUPAL_TI_ENVIRONMENT="drupal-8"
-
-    # The drush version to use, by default: drush/drush:8.0.*
-    # - DRUPAL_TI_DRUSH_VERSION="drush/drush:~9.0"
-
-    # The installation profile to use:
-    #- DRUPAL_TI_INSTALL_PROFILE="testing"
-
-    # Drupal specific variables.
-    - DRUPAL_TI_DB="drupal_travis_db"
-    - DRUPAL_TI_DB_URL="mysql://root:@127.0.0.1/drupal_travis_db"
-    # Note: Do not add a trailing slash here.
-    - DRUPAL_TI_WEBSERVER_URL="http://127.0.0.1"
-    - DRUPAL_TI_WEBSERVER_PORT="8080"
-
-    # Simpletest specific commandline arguments, the DRUPAL_TI_SIMPLETEST_GROUP is appended at the end.
-    - DRUPAL_TI_SIMPLETEST_ARGS="--verbose --color --concurrency 4 --url $DRUPAL_TI_WEBSERVER_URL:$DRUPAL_TI_WEBSERVER_PORT"
-
-    # === Behat specific variables.
-    # This is relative to $TRAVIS_BUILD_DIR
-    - DRUPAL_TI_BEHAT_DIR="./tests/behat"
-    # These arguments are passed to the bin/behat command.
-    - DRUPAL_TI_BEHAT_ARGS=""
-    # Specify the filename of the behat.yml with the $DRUPAL_TI_DRUPAL_DIR variables.
-    - DRUPAL_TI_BEHAT_YML="behat.yml.dist"
-    # This is used to setup Xvfb.
-    - DRUPAL_TI_BEHAT_SCREENSIZE_COLOR="1280x1024x16"
-    # The version of selenium that should be used.
-    - DRUPAL_TI_BEHAT_SELENIUM_VERSION="2.48.2"
-    # Set DRUPAL_TI_BEHAT_DRIVER to "selenium" to use "firefox" or "chrome" here.
-    - DRUPAL_TI_BEHAT_DRIVER="phantomjs"
-    - DRUPAL_TI_BEHAT_BROWSER="firefox"
-
-    # PHPUnit specific commandline arguments.
-    - DRUPAL_TI_PHPUNIT_ARGS=""
-    # Specifying the phpunit-core src/ directory is useful when e.g. a vendor/
-    # directory is present in the module directory, which phpunit would then
-    # try to find tests in. This option is relative to $TRAVIS_BUILD_DIR.
-    #- DRUPAL_TI_PHPUNIT_CORE_SRC_DIRECTORY="./tests/src"
-
-    # Code coverage via coveralls.io
-    - DRUPAL_TI_COVERAGE="satooshi/php-coveralls:0.6.*"
-    # This needs to match your .coveralls.yml file.
-    - DRUPAL_TI_COVERAGE_FILE="build/logs/clover.xml"
-
-    # Debug options
-    #- DRUPAL_TI_DEBUG="-x -v"
-    # Set to "all" to output all files, set to e.g. "xvfb selenium" or "selenium",
-    # etc. to only output those channels.
-    #- DRUPAL_TI_DEBUG_FILE_OUTPUT="selenium xvfb webserver"
-
-  matrix:
-    # [[[ SELECT ANY OR MORE OPTIONS ]]]
-    #- DRUPAL_TI_RUNNERS="phpunit"
-    - DRUPAL_TI_RUNNERS="simpletest"
-    #- DRUPAL_TI_RUNNERS="behat"
-    #- DRUPAL_TI_RUNNERS="phpunit simpletest behat"
-    # Use phpunit-core to test modules with phpunit with Drupal 8 core.
-    #- DRUPAL_TI_RUNNERS="phpunit-core"
+# Cache Composer & Drush directories.
+cache:
+  bundler: true
+  apt: true
+  directories:
+  - "$HOME/.composer/cache"
+  - "$HOME/.drush/cache"
 
 mysql:
-  database: drupal_travis_db
+  database: drupal
   username: root
   encoding: utf8
 
 before_install:
+  # Disable xdebug.
+  - phpenv config-rm xdebug.ini
+
+  # Composer.
+  - sed -i '1i export PATH="$HOME/.composer/vendor/bin:$PATH"' $HOME/.bashrc
+  - source $HOME/.bashrc
   - composer self-update
-  # Comment this line for different directories, e.g. composer in the root.
-  # - cd ./tests
-  - composer global require "lionsad/drupal_ti:1.*"
-  - drupal-ti before_install
+
+  # Drush.
+  - composer global require drush/drush:~8.1
+
+  # Ensure the PHP environment is ready.
+  - phpenv rehash
 
 install:
-  - drupal-ti install
+  - git clone --depth 1 --branch $DRUPAL_VERSION $DRUPAL_REPO drupal
+  - cd drupal && composer install && cd -
+  - mkdir -p drupal/modules/$MODULE_NAME
+
+  # switched to doing it this way because it makes local testing a bit easier.
+  # create symbolic links to all of the files/folders in the module directory
+  - for d in $(pwd)/*; do ln -s "$d" "drupal/modules/$MODULE_NAME"; done
+
+  # remove the recursive drupal folder from the symlinks
+  - rm -f drupal/modules/$MODULE_NAME/drupal
+  - cd drupal
 
 before_script:
-  - drupal-ti before_script
+
+  # This fixes a fail when install Drupal.
+  - echo 'sendmail_path = /bin/true' >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
+
+  # Mysql might time out for long tests, increase the wait timeout.
+  - mysql -e 'SET @@GLOBAL.wait_timeout=1200'
+
+  # Install Drupal and enable the required modules (including this one).
+  - mysql -e 'create database drupal;'
+  - cd $TRAVIS_BUILD_DIR/drupal && drush --yes site-install standard --db-url="mysql://root@127.0.0.1/drupal"
+
+  # Dependency Modules
+  - cd $TRAVIS_BUILD_DIR/drupal && composer require "algolia/algoliasearch-client-php:^2.0"
+  - cd $TRAVIS_BUILD_DIR/drupal && drush --yes en $MODULE_NAME
+  - cd $TRAVIS_BUILD_DIR/drupal && drush --yes en simpletest
+
+  # Export web server URL for browser tests.
+  - export SIMPLETEST_BASE_URL=http://localhost:8080
+
+  # Export database variable for kernel tests.
+  - export SIMPLETEST_DB=mysql://root:@127.0.0.1/drupal
 
 script:
-  - drupal-ti script
 
-after_script:
-  - drupal-ti after_script
-
-notifications:
-  email: false
+  # Start a web server.
+  - cd $TRAVIS_BUILD_DIR/drupal
+  - drush runserver 127.0.0.1:8080 &
