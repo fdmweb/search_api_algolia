@@ -81,7 +81,7 @@ before_script:
 
 
   # go to our Drupal module directory
-  - rm -f $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME
+  - rm -rf $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME
   - mkdir $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME
   - cp -R $TRAVIS_BUILD_DIR/* $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME/
 
