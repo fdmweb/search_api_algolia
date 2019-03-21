@@ -14,7 +14,7 @@ env:
     - DRUPAL_REPO='git://drupalcode.org/project/drupal.git'
     - DRUPAL_VERSION='8.6.x'
     - PHPCS_VERSION='2.7.*'
-    - CODER_VERSION='8.3.1'
+    - CODER_VERSION='8.2.9'
 
 notifications:
  # slack: 'xxx'
@@ -97,20 +97,16 @@ script:
   - cd $TRAVIS_BUILD_DIR/drupal
   - drush runserver 127.0.0.1:8080 &
 
-  # Run code sniffer.
-  # Warnings are disabled until the SMS notifier is ported.
-  - phpcs --report=full --standard=Drupal --warning-severity=0 $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME --ignore=bin,*.css,gulpfile.js,libraries,modules/contrib,vendor
-
   # Drupal "SimpleTests" via run-tests.sh
-  - cd $TRAVIS_BUILD_DIR/drupal
-  - php core/scripts/run-tests.sh --verbose --color --module $MODULE_NAME --php $(which php) --url http://127.0.0.1:8080
+  #  - cd $TRAVIS_BUILD_DIR/drupal
+  #  - php core/scripts/run-tests.sh --verbose --color --module $MODULE_NAME --php $(which php) --url http://127.0.0.1:8080
 
   # PHP Unit Tests
-  - cd $TRAVIS_BUILD_DIR/drupal
-  - phpunit -c core/phpunit.xml.dist modules/$MODULE_NAME --debug --testdox
+  # - cd $TRAVIS_BUILD_DIR/drupal
+  # - phpunit -c core/phpunit.xml.dist modules/$MODULE_NAME --debug --testdox
 
 
   # Behat Tests - RUN THESE LAST OTHERWISE PHPUNIT WILL FAIL BECAUSE OF DEPENDENCY CONFLICTS
-  - cd $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME
-  - composer install
-  - vendor/bin/behat --config tests/behat/behat.yml
+  # - cd $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME
+  #  - composer install
+  # - vendor/bin/behat --config tests/behat/behat.yml
