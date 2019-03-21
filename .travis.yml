@@ -11,7 +11,7 @@ php:
 env:
   global:
     - MODULE_NAME='search_api_algolia'
-    - DRUPAL_REPO='git://drupalcode.org/project/drupal.git'
+    - DRUPAL_REPO='http://git.drupal.org/project/drupal.git'
     - DRUPAL_VERSION='8.6.x'
   #  - PHPCS_VERSION='2.7.*'
   #  - CODER_VERSION='8.2.9'
@@ -55,7 +55,7 @@ before_install:
   - phpenv rehash
 
 install:
-  - git clone --branch $DRUPAL_VERSION $DRUPAL_REPO drupal --depth 1
+  - git clone --depth 1 --branch $DRUPAL_VERSION $DRUPAL_REPO drupal
   - cd drupal && composer install && cd -
   - mkdir -p drupal/modules/$MODULE_NAME
 
