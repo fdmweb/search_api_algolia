@@ -10,7 +10,7 @@
 function search_api_algolia_requirements($phase) {
   $requirements = [];
   if ($phase == 'install') {
-    if (!class_exists('\AlgoliaSearch\Version')) {
+    if (!class_exists('\Algolia\AlgoliaSearch\SearchClient')) {
       $requirements['search_api_algolia_library'] = [
         'description' => t('Algolia Search requires the algolia/algoliasearch-client-php library.'),
         'severity' => REQUIREMENT_ERROR,
