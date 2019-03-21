@@ -79,9 +79,17 @@ before_script:
   - mysql -e 'create database drupal;'
   - cd $TRAVIS_BUILD_DIR/drupal && drush --yes site-install standard --db-url="mysql://root@127.0.0.1/drupal"
 
+
+  # go to our Drupal module directory
+  - rm -f $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME
+  - mkdir $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME
+  - cp -R $TRAVIS_BUILD_DIR/* $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME/
+
+
   # Dependency Modules
-  - cd $TRAVIS_BUILD_DIR && composer install && ls -ls
-  - cd $TRAVIS_BUILD_DIR/drupal && drush --yes en $MODULE_NAME
+  - cd $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME && composer install && ls -ls
+  - cd $TRAVIS_BUILD_DIR/drupal && composer require "algolia/algoliasearch-client-php:^2.0" && ls -ls
+  - cd $TRAVIS_BUILD_DIR/drupal && ls -ls && drush --yes en $MODULE_NAME
   - cd $TRAVIS_BUILD_DIR/drupal && drush --yes en simpletest
 
   # Export web server URL for browser tests.
