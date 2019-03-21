@@ -81,7 +81,7 @@ before_script:
 
   # Dependency Modules
   - cd $TRAVIS_BUILD_DIR/drupal && drush --yes en simpletest
-  - cd $TRAVIS_BUILD_DIR/$MODULE_NAME && ls -ls && composer install
+  - cd $TRAVIS_BUILD_DIR && ls -ls && composer install
   - cd $TRAVIS_BUILD_DIR/drupal/modules/$MODULE_NAME && ls -ls && composer install && drush --yes en $MODULE_NAME
 
   # Export web server URL for browser tests.
