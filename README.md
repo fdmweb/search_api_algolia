@@ -1,3 +1,9 @@
+Search API plugin for Algolia
+==============
+
+### Travis build status
+[![Build Status](https://travis-ci.org/fdmweb/search_api_algolia.svg?branch=master)](https://travis-ci.org/fdmweb/search_api_algolia)
+
 CONTENTS OF THIS FILE
 ---------------------
  * Introduction
@@ -61,6 +67,8 @@ Christopher Calip (chriscalip) - https://www.drupal.org/u/chriscalip
 
 The initial Drupal 7 development of this module has been sponsored by TroisCube (http://www.troiscube.com).
 The initial Drupal 8 development of this module has been sponsored by FDM.dk and FFWagency.com
+
+The module is also at drupal.org in a older version here https://www.drupal.org/project/search_api_algolia
 
 DEPENDENCIES
 ------------
