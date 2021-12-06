@@ -4,7 +4,6 @@ namespace Drupal\search_api_algolia\Plugin\search_api\backend;
 
 use Algolia\AlgoliaSearch\SearchClient;
 use Algolia\AlgoliaSearch\Exceptions\AlgoliaException;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
@@ -236,8 +235,8 @@ class SearchApiAlgoliaBackend extends BackendPluginBase implements PluginFormInt
           case 'string':
           case 'uri':
             $field_value .= '';
-            if (Unicode::strlen($field_value) > 10000) {
-              $field_value = Unicode::substr(trim($field_value), 0, 10000);
+            if (mb_strlen($field_value) > 10000) {
+              $field_value = mb_substr(trim($field_value), 0, 10000);
             }
             $values[] = $field_value;
             break;
